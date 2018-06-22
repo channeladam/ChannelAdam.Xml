@@ -1,7 +1,7 @@
 ﻿using System;
 using BehaviourSpecs.TestDoubles;
 using TechTalk.SpecFlow;
-using ChannelAdam.TestFramework.MSTest.Abstractions;
+using ChannelAdam.TestFramework.MSTestV2.Abstractions;
 using ChannelAdam.Xml;
 using System.Reflection;
 using System.Xml.Serialization;

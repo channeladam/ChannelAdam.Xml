@@ -52,8 +52,8 @@
     <Reference Include="ChannelAdam.TestFramework.Moq, Version=2.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\packages\ChannelAdam.TestFramework.Moq.2.0.2\lib\netstandard1.3\ChannelAdam.TestFramework.Moq.dll</HintPath>
     </Reference>
-    <Reference Include="ChannelAdam.TestFramework.MSTest, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\ChannelAdam.TestFramework.MSTest.2.0.0\lib\net46\ChannelAdam.TestFramework.MSTest.dll</HintPath>
+    <Reference Include="ChannelAdam.TestFramework.MSTestV2, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\ChannelAdam.TestFramework.MSTestV2.1.0.0\lib\netstandard1.3\ChannelAdam.TestFramework.MSTestV2.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\MSTest.TestFramework.1.3.2\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.dll</HintPath>
@@ -105,7 +105,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="BehaviourSpecs.ruleset" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="XmlSerialisation.feature">
       <Generator>SpecFlowSingleFileGenerator</Generator>
       <LastGenOutput>XmlSerialisation.feature.cs</LastGenOutput>
