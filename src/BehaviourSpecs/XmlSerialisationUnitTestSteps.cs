@@ -96,15 +96,16 @@ namespace BehaviourSpecs
             this.expectedXml = GetAsString(Assembly.GetExecutingAssembly(), "BehaviourSpecs.TestData.ExpectedXmlWithNewRoot.xml");
             Logger.Log($"Expected XML: {Environment.NewLine}" + this.expectedXml);
 
-            XmlRootAttribute newXmlRoot = CreateNewXmlRootAttribute();
+            var (Root, EqualityKey) = CreateNewXmlRootAttribute();
             var xmlAttributes = new XmlAttributes
             {
-                XmlRoot = newXmlRoot
+                XmlRoot = Root
             };
+            var equalityKey = $"XmlAttributes|{EqualityKey}";
             var attributeOverrides = new XmlAttributeOverrides();
             attributeOverrides.Add(typeof(TestObjectForXmlStuff), xmlAttributes);
 
-            this.actualXml = this.testXmlObject.SerialiseToXml(attributeOverrides);
+            this.actualXml = this.testXmlObject.SerialiseToXml(equalityKey, attributeOverrides);
             Logger.Log($"Actual XML: {Environment.NewLine}" + this.actualXml);
         }
 
@@ -119,26 +120,27 @@ namespace BehaviourSpecs
         [When(@"the XML string with the different XML root attribute is deserialised with an override of the XML root attribute")]
         public void WhenTheXMLStringWithTheDifferentXMLRootAttributeIsDeserialisedWithAnOverrideOfTheXMLRootAttribute()
         {
-            var newXmlRoot = CreateNewXmlRootAttribute();
+            var (Root, EqualityKey) = CreateNewXmlRootAttribute();
 
-            this.testXmlObject = this.expectedXml.DeserialiseFromXml<TestObjectForXmlStuff>(newXmlRoot);
-            this.actualXml = this.testXmlObject.SerialiseToXml(newXmlRoot);
+            this.testXmlObject = this.expectedXml.DeserialiseFromXml<TestObjectForXmlStuff>(Root);
+            this.actualXml = this.testXmlObject.SerialiseToXml(Root);
             Logger.Log($"Actual re-serialised XML: {Environment.NewLine}" + this.actualXml);
         }
 
         [When(@"the XML string with the different XML root attribute is deserialised with an override of the XML attributes")]
         public void WhenTheXMLStringWithTheDifferentXMLRootAttributeIsDeserialisedWithAnOverrideOfTheXMLAttributes()
         {
-            var newXmlRoot = CreateNewXmlRootAttribute();
+            var (Root, EqualityKey) = CreateNewXmlRootAttribute();
             var xmlAttributes = new XmlAttributes
             {
-                XmlRoot = newXmlRoot
+                XmlRoot = Root
             };
+            var equalityKey = $"XmlAttributes|{EqualityKey}";
             var attributeOverrides = new XmlAttributeOverrides();
             attributeOverrides.Add(typeof(TestObjectForXmlStuff), xmlAttributes);
 
-            this.testXmlObject = this.expectedXml.DeserialiseFromXml<TestObjectForXmlStuff>(attributeOverrides);
-            this.actualXml = this.testXmlObject.SerialiseToXml(attributeOverrides);
+            this.testXmlObject = this.expectedXml.DeserialiseFromXml<TestObjectForXmlStuff>(equalityKey, attributeOverrides);
+            this.actualXml = this.testXmlObject.SerialiseToXml(equalityKey, attributeOverrides);
             Logger.Log($"Actual re-serialised XML: {Environment.NewLine}" + this.actualXml);
         }
 
@@ -178,13 +180,13 @@ namespace BehaviourSpecs
             };
         }
 
-        private static XmlRootAttribute CreateNewXmlRootAttribute()
+        private static (XmlRootAttribute Root, string EqualityKey) CreateNewXmlRootAttribute()
         {
             var newXmlRoot = new XmlRootAttribute("NewRoot")
             {
                 Namespace = "uri:new:namespace"
             };
-            return newXmlRoot;
+            return (newXmlRoot, $"ROOT|{newXmlRoot.ElementName}|{newXmlRoot.Namespace}");
         }
 
         private static Stream GetAsStream(Assembly assembly, string resourceName)

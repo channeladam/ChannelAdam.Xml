@@ -43,6 +43,9 @@
     <Reference Include="Castle.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Castle.Core.4.3.1\lib\net45\Castle.Core.dll</HintPath>
     </Reference>
+    <Reference Include="ChannelAdam.Disposing, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\ChannelAdam.Disposing.2.0.0\lib\netstandard1.3\ChannelAdam.Disposing.dll</HintPath>
+    </Reference>
     <Reference Include="ChannelAdam.Logging, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\packages\ChannelAdam.Logging.2.1.0\lib\netstandard1.3\ChannelAdam.Logging.dll</HintPath>
     </Reference>

@@ -77,11 +77,35 @@ namespace ChannelAdam.Xml
             return xmlDoc;
         }
 
+        /// <summary>
+        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="valueToSerialise"></param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use ToXmlDocument<T>(this T valueToSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1059:MembersShouldNotExposeCertainConcreteTypes", MessageId = "System.Xml.XmlNode", Justification = "As designed")]
         public static XmlDocument ToXmlDocument<T>(this T valueToSerialise, XmlAttributeOverrides xmlAttributeOverrides)
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(valueToSerialise.SerialiseToXml(xmlAttributeOverrides));
+            return xmlDoc;
+        }
+
+        /// <summary>
+        /// ToXmlDocument with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="valueToSerialise"></param>
+        /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1059:MembersShouldNotExposeCertainConcreteTypes", MessageId = "System.Xml.XmlNode", Justification = "As designed")]
+        public static XmlDocument ToXmlDocument<T>(this T valueToSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        {
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(valueToSerialise.SerialiseToXml(equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides));
             return xmlDoc;
         }
     }

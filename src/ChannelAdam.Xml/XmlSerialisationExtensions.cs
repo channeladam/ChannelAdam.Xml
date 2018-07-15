@@ -17,7 +17,9 @@
 
 namespace ChannelAdam.Xml
 {
+    using ChannelAdam.Xml.Internal;
     using System;
+    using System.Collections.Concurrent;
     using System.Diagnostics;
     using System.IO;
     using System.Text;
@@ -26,7 +28,16 @@ namespace ChannelAdam.Xml
 
     public static class XmlSerialisationExtensions
     {
+        #region Private Fields
+
+        private static readonly ConcurrentDictionary<Tuple<Type, string>, XmlSerializer> _serialiserCache = new ConcurrentDictionary<Tuple<Type, string>, XmlSerializer>();
+        private static readonly NamedLocker _namedLocker = new NamedLocker();
+
+        #endregion Private Fields
+
         #region Public Methods
+
+        #region Serialise
 
         public static string SerialiseToXml<T>(this T toSerialise)
         {
@@ -42,27 +53,77 @@ namespace ChannelAdam.Xml
 
         public static string SerialiseToXml<T>(this T toSerialise, XmlRootAttribute xmlRootAttributeOverride)
         {
-            var xmlAttributeOverrides = CreateXmlAttributeOverrides(toSerialise.GetType(), xmlRootAttributeOverride);
-            return SerialiseToXml(toSerialise, xmlAttributeOverrides);
+            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
+            return SerialiseToXml(serialiser, toSerialise);
         }
 
         public static string SerialiseToXml<T>(this T toSerialise, XmlRootAttribute xmlRootAttributeOverride, XmlWriterSettings settings)
         {
-            var xmlAttributeOverrides = CreateXmlAttributeOverrides(toSerialise.GetType(), xmlRootAttributeOverride);
-            return SerialiseToXml(toSerialise, xmlAttributeOverrides, settings);
+            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
+            return SerialiseToXml(serialiser, settings, toSerialise);
         }
 
+        /// <summary>
+        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="toSerialise"></param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
         public static string SerialiseToXml<T>(this T toSerialise, XmlAttributeOverrides xmlAttributeOverrides)
         {
             var xmlSerialiser = new XmlSerializer(toSerialise.GetType(), xmlAttributeOverrides);
             return SerialiseToXml(xmlSerialiser, toSerialise);
         }
 
+        /// <summary>
+        /// SerialiseToXml with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="toSerialise"></param>
+        /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        public static string SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        {
+            XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
+            return SerialiseToXml(serialiser, toSerialise);
+        }
+
+        /// <summary>
+        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="toSerialise"></param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings) instead.")]
         public static string SerialiseToXml<T>(this T toSerialise, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings)
         {
             var xmlSerialiser = new XmlSerializer(toSerialise.GetType(), xmlAttributeOverrides);
             return SerialiseToXml(xmlSerialiser, settings, toSerialise);
         }
+
+        /// <summary>
+        /// SerialiseToXml with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="toSerialise"></param>
+        /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        public static string SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings)
+        {
+            XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
+            return SerialiseToXml(serialiser, settings, toSerialise);
+        }
+
+        #endregion Serialise
+
+        #region Deserialise
 
         public static T DeserialiseFromXml<T>(this string xml)
         {
@@ -72,14 +133,42 @@ namespace ChannelAdam.Xml
 
         public static T DeserialiseFromXml<T>(this string xml, XmlRootAttribute xmlRootAttributeOverride)
         {
-            var xmlAttributeOverrides = CreateXmlAttributeOverrides(typeof(T), xmlRootAttributeOverride);
-            return DeserialiseFromXml<T>(xml, xmlAttributeOverrides);
+            Type typeOfT = typeof(T);
+            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(typeOfT, xmlRootAttributeOverride);
+
+            var lockName = typeOfT.FullName + equalityKey;
+            return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xml));
         }
 
+        /// <summary>
+        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xml"></param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use DeserialiseFromXml<T>(this string xml, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
         public static T DeserialiseFromXml<T>(this string xml, XmlAttributeOverrides xmlAttributeOverrides)
         {
             var xmlSerialiser = new XmlSerializer(typeof(T), xmlAttributeOverrides);
             return DeserialiseFromXml<T>(xmlSerialiser, xml);
+        }
+
+        /// <summary>
+        /// DeserialiseFromXml with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xml"></param>
+        /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        public static T DeserialiseFromXml<T>(this string xml, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        {
+            Type typeOfT = typeof(T);
+            XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(typeOfT, equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
+
+            var lockName = typeOfT.FullName + equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak;
+            return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xml));
         }
 
         public static T DeserialiseFromXml<T>(this Stream xmlStream)
@@ -90,19 +179,94 @@ namespace ChannelAdam.Xml
 
         public static T DeserialiseFromXml<T>(this Stream xmlStream, XmlRootAttribute xmlRootAttributeOverride)
         {
-            var xmlAttributeOverrides = CreateXmlAttributeOverrides(typeof(T), xmlRootAttributeOverride);
-            return DeserialiseFromXml<T>(xmlStream, xmlAttributeOverrides);
+            Type typeOfT = typeof(T);
+            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(typeOfT, xmlRootAttributeOverride);
+
+            var lockName = typeOfT.FullName + equalityKey;
+            return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xmlStream));
         }
 
+        /// <summary>
+        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xmlStream"></param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use DeserialiseFromXml<T>(this Stream xmlStream, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
         public static T DeserialiseFromXml<T>(this Stream xmlStream, XmlAttributeOverrides xmlAttributeOverrides)
         {
             var xmlSerialiser = new XmlSerializer(typeof(T), xmlAttributeOverrides);
             return DeserialiseFromXml<T>(xmlSerialiser, xmlStream);
         }
 
+        /// <summary>
+        /// DeserialiseFromXml with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="xmlStream"></param>
+        /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
+        /// <param name="xmlAttributeOverrides"></param>
+        /// <returns></returns>
+        public static T DeserialiseFromXml<T>(this Stream xmlStream, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        {
+            Type typeOfT = typeof(T);
+            XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(typeOfT, equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
+
+            var lockName = typeOfT.FullName + equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak;
+            return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xmlStream));
+        }
+
+        #endregion Deserialise
+
         #endregion
 
         #region Private Methods
+
+        private static (XmlSerializer xmlSerializer, string equalityKey) GetOrAddXmlSerialiserFromCache(Type objectType, XmlRootAttribute xmlRootAttributeOverride)
+        {
+            /*
+             * The XmlSerializer(Type, XmlAttributeOverrides) ctor leaks memory, so cache it per unique input values: 
+             *      https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx
+             *     "To increase performance, the XML serialization infrastructure dynamically generates assemblies to serialize and deserialize specified types. 
+             *      The infrastructure finds and reuses those assemblies. This behavior occurs only when using the following constructors:
+             *          XmlSerializer.XmlSerializer(Type)
+             *          XmlSerializer.XmlSerializer(Type, String)
+             *      If you use any of the other constructors, multiple versions of the same assembly are generated and never unloaded, 
+             *      which results in a memory leak and poor performance. The easiest solution is to use one of the previously mentioned two constructors. 
+             *      Otherwise, you must cache the assemblies..."
+            */
+
+            string equalityKey = $"ROOT|{xmlRootAttributeOverride.DataType}|{xmlRootAttributeOverride.ElementName}|{xmlRootAttributeOverride.IsNullable}|{xmlRootAttributeOverride.Namespace}";
+
+            return (_serialiserCache.GetOrAdd(
+                        Tuple.Create(objectType, equalityKey),
+                        _ =>
+                        {
+                            XmlAttributeOverrides xmlAttributeOverrides = CreateXmlAttributeOverrides(objectType, xmlRootAttributeOverride);
+                            return new XmlSerializer(objectType, xmlAttributeOverrides);
+                        }),
+                equalityKey);
+        }
+
+        private static XmlSerializer GetOrAddXmlSerialiserFromCache(Type objectType, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        {
+            /*
+             * The XmlSerializer(Type, XmlAttributeOverrides) ctor leaks memory, so cache it per unique input values: 
+             *      https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx
+             *     "To increase performance, the XML serialization infrastructure dynamically generates assemblies to serialize and deserialize specified types. 
+             *      The infrastructure finds and reuses those assemblies. This behavior occurs only when using the following constructors:
+             *          XmlSerializer.XmlSerializer(Type)
+             *          XmlSerializer.XmlSerializer(Type, String)
+             *      If you use any of the other constructors, multiple versions of the same assembly are generated and never unloaded, 
+             *      which results in a memory leak and poor performance. The easiest solution is to use one of the previously mentioned two constructors. 
+             *      Otherwise, you must cache the assemblies..."
+            */
+
+            return _serialiserCache.GetOrAdd(
+                Tuple.Create(objectType, equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak),
+                _ => new XmlSerializer(objectType, xmlAttributeOverrides));
+        }
 
         private static XmlAttributeOverrides CreateXmlAttributeOverrides(Type objectType, XmlRootAttribute newRootAttribute)
         {

@@ -12,7 +12,13 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>ChannelAdam,XML</PackageTags>
     <PackageIconUrl>https://devzone.channeladam.com/img/channeladam/channeladam-logo.png</PackageIconUrl>
-    <PackageReleaseNotes>2.0.0 - Refactored out of ChannelAdam.Core, target .NET Standard 2.0, no strong name signing</PackageReleaseNotes>
+    <PackageReleaseNotes>2.1.0 - Made extension methods with XmlAttributeOverrides obsolete as they leak memory as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
+- Added overload to allow the caller to specify a key for each XmlAttributeOverrides object they provide - used for equality checking as part of the XmlSerializer caching mechanism that was introduced to prevent the leak.
+2.0.0 - Refactored out of ChannelAdam.Core, target .NET Standard 2.0, no strong name signing</PackageReleaseNotes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ChannelAdam.Disposing" Version="2.0.0" />
+  </ItemGroup>
 
 </Project>
