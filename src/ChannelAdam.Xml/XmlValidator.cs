@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="XmlValidator.cs">
-//     Copyright (c) 2016-2018 Adam Craven. All rights reserved.
+//     Copyright (c) 2016-2021 Adam Craven. All rights reserved.
 // </copyright>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,6 +105,11 @@ namespace ChannelAdam.Xml
         public void ValidateXml(string xml, Stream xmlSchema, bool treatWarningsAsErrors)
         {
             var xsd = XmlSchema.Read(xmlSchema, null);
+            if (xsd is null)
+            {
+                throw new InvalidOperationException("xmlSchema could not be successfully parsed");
+            }
+
             this.ValidateXml(xml, xsd, treatWarningsAsErrors);
         }
 
@@ -129,6 +134,11 @@ namespace ChannelAdam.Xml
         public void ValidateXml(string xml, Stream xmlSchema, ValidationEventHandler validationEventHandler, bool treatWarningsAsErrors)
         {
             var xsd = XmlSchema.Read(xmlSchema, validationEventHandler);
+            if (xsd is null)
+            {
+                throw new InvalidOperationException("xmlSchema could not be successfully parsed");
+            }
+
             this.ValidateXml(xml, xsd, treatWarningsAsErrors);
         }
 
@@ -269,6 +279,11 @@ namespace ChannelAdam.Xml
         public bool IsValidXml(string xml, Stream xmlSchema, bool treatWarningsAsErrors)
         {
             var xsd = XmlSchema.Read(xmlSchema, null);
+            if (xsd is null)
+            {
+                throw new InvalidOperationException("xmlSchema could not be successfully parsed");
+            }
+
             return this.IsValidXml(xml, xsd, treatWarningsAsErrors);
         }
 
@@ -295,6 +310,11 @@ namespace ChannelAdam.Xml
         public bool IsValidXml(string xml, Stream xmlSchema, ValidationEventHandler validationEventHandler, bool treatWarningsAsErrors)
         {
             var xsd = XmlSchema.Read(xmlSchema, validationEventHandler);
+            if (xsd is null)
+            {
+                throw new InvalidOperationException("xmlSchema could not be successfully parsed");
+            }
+
             return this.IsValidXml(xml, xsd, treatWarningsAsErrors);
         }
 
@@ -406,7 +426,7 @@ namespace ChannelAdam.Xml
                 throw new ArgumentNullException(nameof(xmlReaderSettings));
             }
 
-            TextReader textReader = null;
+            TextReader? textReader = null;
 
             this.validationErrors.Clear();
 
@@ -415,12 +435,10 @@ namespace ChannelAdam.Xml
                 textReader = new StringReader(xml);
                 xmlReaderSettings.ValidationEventHandler += this.ValidationEventHandler;
 
-                using (var xmlReader = XmlReader.Create(textReader, xmlReaderSettings))
+                using XmlReader? xmlReader = XmlReader.Create(textReader, xmlReaderSettings);
+                textReader = null;
+                while (xmlReader.Read())
                 {
-                    textReader = null;
-                    while (xmlReader.Read())
-                    {
-                    }
                 }
             }
             finally
@@ -458,7 +476,7 @@ namespace ChannelAdam.Xml
             throw new XmlSchemaValidationException(string.Join("." + Environment.NewLine, this.validationErrors));
         }
 
-        private void ValidationEventHandler(object sender, ValidationEventArgs e)
+        private void ValidationEventHandler(object? sender, ValidationEventArgs e)
         {
             switch (e.Severity)
             {

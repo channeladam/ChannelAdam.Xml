@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="NamedLocker.cs">
-//     Copyright (c) 2018 Adam Craven. All rights reserved.
+//     Copyright (c) 2018-2021 Adam Craven. All rights reserved.
 // </copyright>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ namespace ChannelAdam.Xml.Internal
     {
         #region Private Fields
 
-        private readonly ConcurrentDictionary<string, object> _lockDict = new ConcurrentDictionary<string, object>();
+        private readonly ConcurrentDictionary<string, object> _lockDict = new();
 
         #endregion Private Fields
 
@@ -43,12 +43,10 @@ namespace ChannelAdam.Xml.Internal
         /// <summary>
         /// Removes a lock object that is no longer needed.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
         /// <param name="name"></param>
-        /// <returns></returns>
         public void RemoveLock(string name)
         {
-            _lockDict.TryRemove(name, out object o);
+            _lockDict.TryRemove(name, out object? _);
         }
 
         /// <summary>
@@ -69,10 +67,8 @@ namespace ChannelAdam.Xml.Internal
         /// <summary>
         /// Performs the given action body inside a lock block.
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
         /// <param name="name"></param>
         /// <param name="body"></param>
-        /// <returns></returns>
         public void RunWithLock(string name, Action body)
         {
             lock (_lockDict.GetOrAdd(name, new object()))

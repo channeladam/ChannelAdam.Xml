@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="XmlSerialisationExtensions.cs">
-//     Copyright (c) 2016-2018 Adam Craven. All rights reserved.
+//     Copyright (c) 2016-2021 Adam Craven. All rights reserved.
 // </copyright>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,8 @@ namespace ChannelAdam.Xml
     {
         #region Private Fields
 
-        private static readonly ConcurrentDictionary<Tuple<Type, string>, XmlSerializer> _serialiserCache = new ConcurrentDictionary<Tuple<Type, string>, XmlSerializer>();
-        private static readonly NamedLocker _namedLocker = new NamedLocker();
+        private static readonly ConcurrentDictionary<Tuple<Type, string>, XmlSerializer> _serialiserCache = new();
+        private static readonly NamedLocker _namedLocker = new();
 
         #endregion Private Fields
 
@@ -41,40 +41,46 @@ namespace ChannelAdam.Xml
 
         public static string SerialiseToXml<T>(this T toSerialise)
         {
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
+
             var xmlSerialiser = new XmlSerializer(toSerialise.GetType());
             return SerialiseToXml(xmlSerialiser, toSerialise);
         }
 
         public static string SerialiseToXml<T>(this T toSerialise, XmlWriterSettings settings)
         {
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
+
             var xmlSerialiser = new XmlSerializer(toSerialise.GetType());
             return SerialiseToXml(xmlSerialiser, settings, toSerialise);
         }
 
         public static string SerialiseToXml<T>(this T toSerialise, XmlRootAttribute xmlRootAttributeOverride)
         {
-            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
+
+            var (serialiser, _) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
             return SerialiseToXml(serialiser, toSerialise);
         }
 
         public static string SerialiseToXml<T>(this T toSerialise, XmlRootAttribute xmlRootAttributeOverride, XmlWriterSettings settings)
         {
-            var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
-            return SerialiseToXml(serialiser, settings, toSerialise);
-        }
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
 
-        /// <summary>
-        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="toSerialise"></param>
-        /// <param name="xmlAttributeOverrides"></param>
-        /// <returns></returns>
-        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
-        public static string SerialiseToXml<T>(this T toSerialise, XmlAttributeOverrides xmlAttributeOverrides)
-        {
-            var xmlSerialiser = new XmlSerializer(toSerialise.GetType(), xmlAttributeOverrides);
-            return SerialiseToXml(xmlSerialiser, toSerialise);
+            var (serialiser, _) = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), xmlRootAttributeOverride);
+            return SerialiseToXml(serialiser, settings, toSerialise);
         }
 
         /// <summary>
@@ -87,23 +93,13 @@ namespace ChannelAdam.Xml
         /// <returns></returns>
         public static string SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
         {
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
+
             XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
             return SerialiseToXml(serialiser, toSerialise);
-        }
-
-        /// <summary>
-        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="toSerialise"></param>
-        /// <param name="xmlAttributeOverrides"></param>
-        /// <param name="settings"></param>
-        /// <returns></returns>
-        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings) instead.")]
-        public static string SerialiseToXml<T>(this T toSerialise, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings)
-        {
-            var xmlSerialiser = new XmlSerializer(toSerialise.GetType(), xmlAttributeOverrides);
-            return SerialiseToXml(xmlSerialiser, settings, toSerialise);
         }
 
         /// <summary>
@@ -117,6 +113,11 @@ namespace ChannelAdam.Xml
         /// <returns></returns>
         public static string SerialiseToXml<T>(this T toSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides, XmlWriterSettings settings)
         {
+            if (toSerialise is null)
+            {
+                throw new ArgumentNullException(nameof(toSerialise));
+            }
+
             XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(toSerialise.GetType(), equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
             return SerialiseToXml(serialiser, settings, toSerialise);
         }
@@ -125,33 +126,19 @@ namespace ChannelAdam.Xml
 
         #region Deserialise
 
-        public static T DeserialiseFromXml<T>(this string xml)
+        public static T? DeserialiseFromXml<T>(this string xml)
         {
             var xmlSerialiser = new XmlSerializer(typeof(T));
             return DeserialiseFromXml<T>(xmlSerialiser, xml);
         }
 
-        public static T DeserialiseFromXml<T>(this string xml, XmlRootAttribute xmlRootAttributeOverride)
+        public static T? DeserialiseFromXml<T>(this string xml, XmlRootAttribute xmlRootAttributeOverride)
         {
             Type typeOfT = typeof(T);
             var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(typeOfT, xmlRootAttributeOverride);
 
             var lockName = typeOfT.FullName + equalityKey;
             return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xml));
-        }
-
-        /// <summary>
-        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="xml"></param>
-        /// <param name="xmlAttributeOverrides"></param>
-        /// <returns></returns>
-        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use DeserialiseFromXml<T>(this string xml, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
-        public static T DeserialiseFromXml<T>(this string xml, XmlAttributeOverrides xmlAttributeOverrides)
-        {
-            var xmlSerialiser = new XmlSerializer(typeof(T), xmlAttributeOverrides);
-            return DeserialiseFromXml<T>(xmlSerialiser, xml);
         }
 
         /// <summary>
@@ -162,7 +149,7 @@ namespace ChannelAdam.Xml
         /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
         /// <param name="xmlAttributeOverrides"></param>
         /// <returns></returns>
-        public static T DeserialiseFromXml<T>(this string xml, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        public static T? DeserialiseFromXml<T>(this string xml, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
         {
             Type typeOfT = typeof(T);
             XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(typeOfT, equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
@@ -171,13 +158,13 @@ namespace ChannelAdam.Xml
             return _namedLocker.RunWithLock(lockName, () => DeserialiseFromXml<T>(serialiser, xml));
         }
 
-        public static T DeserialiseFromXml<T>(this Stream xmlStream)
+        public static T? DeserialiseFromXml<T>(this Stream xmlStream)
         {
             var xmlSerialiser = new XmlSerializer(typeof(T));
             return DeserialiseFromXml<T>(xmlSerialiser, xmlStream);
         }
 
-        public static T DeserialiseFromXml<T>(this Stream xmlStream, XmlRootAttribute xmlRootAttributeOverride)
+        public static T? DeserialiseFromXml<T>(this Stream xmlStream, XmlRootAttribute xmlRootAttributeOverride)
         {
             Type typeOfT = typeof(T);
             var (serialiser, equalityKey) = GetOrAddXmlSerialiserFromCache(typeOfT, xmlRootAttributeOverride);
@@ -187,20 +174,6 @@ namespace ChannelAdam.Xml
         }
 
         /// <summary>
-        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="xmlStream"></param>
-        /// <param name="xmlAttributeOverrides"></param>
-        /// <returns></returns>
-        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use DeserialiseFromXml<T>(this Stream xmlStream, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
-        public static T DeserialiseFromXml<T>(this Stream xmlStream, XmlAttributeOverrides xmlAttributeOverrides)
-        {
-            var xmlSerialiser = new XmlSerializer(typeof(T), xmlAttributeOverrides);
-            return DeserialiseFromXml<T>(xmlSerialiser, xmlStream);
-        }
-
-        /// <summary>
         /// DeserialiseFromXml with XmlAttributeOverrides - and avoid the XmlSerializer memory leak described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -208,7 +181,7 @@ namespace ChannelAdam.Xml
         /// <param name="equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak">CAUTION: XmlAttributeOverrides.GetHashCode() returns a different value for each instance, even if each instance has the exact same objects - so consider making your own equality key based on what you added to the XmlAttributeOverrides.</param>
         /// <param name="xmlAttributeOverrides"></param>
         /// <returns></returns>
-        public static T DeserialiseFromXml<T>(this Stream xmlStream, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
+        public static T? DeserialiseFromXml<T>(this Stream xmlStream, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
         {
             Type typeOfT = typeof(T);
             XmlSerializer serialiser = GetOrAddXmlSerialiserFromCache(typeOfT, equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, xmlAttributeOverrides);
@@ -246,7 +219,7 @@ namespace ChannelAdam.Xml
                             XmlAttributeOverrides xmlAttributeOverrides = CreateXmlAttributeOverrides(objectType, xmlRootAttributeOverride);
                             return new XmlSerializer(objectType, xmlAttributeOverrides);
                         }),
-                equalityKey);
+                    equalityKey);
         }
 
         private static XmlSerializer GetOrAddXmlSerialiserFromCache(Type objectType, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides)
@@ -281,24 +254,20 @@ namespace ChannelAdam.Xml
 
         private static string SerialiseToXml(XmlSerializer xmlSerialiser, object toSerialise)
         {
-            using (var writer = new StringWriter())
-            {
-                xmlSerialiser.Serialize(writer, toSerialise);
-                return writer.ToString();
-            }
+            using var writer = new StringWriter();
+            xmlSerialiser.Serialize(writer, toSerialise);
+            return writer.ToString();
         }
 
         private static string SerialiseToXml(XmlSerializer xmlSerialiser, XmlWriterSettings xmlWriterSettings, object toSerialise)
         {
             var sb = new StringBuilder();
-            using (var xmlWriter = XmlWriter.Create(sb, xmlWriterSettings))
-            {
-                xmlSerialiser.Serialize(xmlWriter, toSerialise);
-                return sb.ToString();
-            }
+            using var xmlWriter = XmlWriter.Create(sb, xmlWriterSettings);
+            xmlSerialiser.Serialize(xmlWriter, toSerialise);
+            return sb.ToString();
         }
 
-        private static T DeserialiseFromXml<T>(XmlSerializer xmlSerialiser, string xml)
+        private static T? DeserialiseFromXml<T>(XmlSerializer xmlSerialiser, string xml)
         {
             xmlSerialiser.UnknownAttribute += XmlSerialiser_UnknownAttribute;
             xmlSerialiser.UnknownElement += XmlSerialiser_UnknownElement;
@@ -307,10 +276,8 @@ namespace ChannelAdam.Xml
 
             try
             {
-                using (var reader = new StringReader(xml))
-                {
-                    return (T)xmlSerialiser.Deserialize(reader);
-                }
+                using var reader = new StringReader(xml);
+                return (T?)xmlSerialiser.Deserialize(reader);
             }
             finally
             {
@@ -321,7 +288,7 @@ namespace ChannelAdam.Xml
             }
         }
 
-        private static T DeserialiseFromXml<T>(XmlSerializer xmlSerialiser, Stream toDeserialise)
+        private static T? DeserialiseFromXml<T>(XmlSerializer xmlSerialiser, Stream toDeserialise)
         {
             xmlSerialiser.UnknownAttribute += XmlSerialiser_UnknownAttribute;
             xmlSerialiser.UnknownElement += XmlSerialiser_UnknownElement;
@@ -330,7 +297,7 @@ namespace ChannelAdam.Xml
 
             try
             {
-                return (T)xmlSerialiser.Deserialize(toDeserialise);
+                return (T?)xmlSerialiser.Deserialize(toDeserialise);
             }
             finally
             {
@@ -341,22 +308,22 @@ namespace ChannelAdam.Xml
             }
         }
 
-        private static void XmlSerialiser_UnreferencedObject(object sender, UnreferencedObjectEventArgs e)
+        private static void XmlSerialiser_UnreferencedObject(object? sender, UnreferencedObjectEventArgs e)
         {
             Trace.WriteLine($"XmlSerialiser Error - Unreferenced Object - Id:{e.UnreferencedId}");
         }
 
-        private static void XmlSerialiser_UnknownNode(object sender, XmlNodeEventArgs e)
+        private static void XmlSerialiser_UnknownNode(object? sender, XmlNodeEventArgs e)
         {
             Trace.WriteLine($"XmlSerialiser Error - Unknown Node - LineNumber:{e.LineNumber}, LinePosition:{e.LinePosition}, Namespace:'{e.NamespaceURI}', Name:'{e.Name}', Text:'{e.Text}'");
         }
 
-        private static void XmlSerialiser_UnknownElement(object sender, XmlElementEventArgs e)
+        private static void XmlSerialiser_UnknownElement(object? sender, XmlElementEventArgs e)
         {
             Trace.WriteLine($"XmlSerialiser Error - Unknown Element - LineNumber:{e.LineNumber}, LinePosition:{e.LinePosition}, Namespace:'{e.Element.NamespaceURI}', Name:'{e.Element.Name}', Expected:'{e.ExpectedElements}'");
         }
 
-        private static void XmlSerialiser_UnknownAttribute(object sender, XmlAttributeEventArgs e)
+        private static void XmlSerialiser_UnknownAttribute(object? sender, XmlAttributeEventArgs e)
         {
             Trace.WriteLine($"XmlSerialiser Error - Unknown Attribute - LineNumber:{e.LineNumber}, LinePosition:{e.LinePosition}, Namespace:'{e.Attr.NamespaceURI}', Name:'{e.Attr.Name}', Expected:'{e.ExpectedAttributes}'");
         }

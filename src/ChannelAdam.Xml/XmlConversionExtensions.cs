@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
 // <copyright file="XmlConversionExtensions.cs">
-//     Copyright (c) 2016-2018 Adam Craven. All rights reserved.
+//     Copyright (c) 2016-2021 Adam Craven. All rights reserved.
 // </copyright>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ namespace ChannelAdam.Xml
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1059:MembersShouldNotExposeCertainConcreteTypes", MessageId = "System.Xml.XmlNode", Justification = "As designed")]
-        public static XmlNode ToXmlNode(this XNode node)
+        public static XmlNode? ToXmlNode(this XNode node)
         {
             if (node == null)
             {
@@ -54,7 +54,7 @@ namespace ChannelAdam.Xml
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1059:MembersShouldNotExposeCertainConcreteTypes", MessageId = "System.Xml.XmlNode", Justification = "As designed")]
-        public static XmlNode ToXmlNode(this string xml)
+        public static XmlNode? ToXmlNode(this string xml)
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(xml);
@@ -74,22 +74,6 @@ namespace ChannelAdam.Xml
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(valueToSerialise.SerialiseToXml(xmlRootAttribute));
-            return xmlDoc;
-        }
-
-        /// <summary>
-        /// OBSOLETE. CAUTION - this is subject to XmlSerializer memory leaks as described in "Dynamically Generated Assemblies" in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="valueToSerialise"></param>
-        /// <param name="xmlAttributeOverrides"></param>
-        /// <returns></returns>
-        [Obsolete("This is subject to XmlSerializer memory leaks as described in 'Dynamically Generated Assemblies' in https://msdn.microsoft.com/en-us/library/system.xml.serialization.xmlserializer.aspx#Remarks. Use ToXmlDocument<T>(this T valueToSerialise, string equalityKeyOfXmlAttributeOverridesToAvoidXmlSerializerMemoryLeak, XmlAttributeOverrides xmlAttributeOverrides) instead.")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1059:MembersShouldNotExposeCertainConcreteTypes", MessageId = "System.Xml.XmlNode", Justification = "As designed")]
-        public static XmlDocument ToXmlDocument<T>(this T valueToSerialise, XmlAttributeOverrides xmlAttributeOverrides)
-        {
-            var xmlDoc = new XmlDocument();
-            xmlDoc.LoadXml(valueToSerialise.SerialiseToXml(xmlAttributeOverrides));
             return xmlDoc;
         }
 
